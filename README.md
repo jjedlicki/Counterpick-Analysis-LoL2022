@@ -193,5 +193,8 @@ After running my permutation test, I got a p-value of **0.112** so I cannot reje
 ></iframe>
 
 As seen by my results, my observed statistic is located within the distribution of permutated training data.
-![Broken Ornn Dance Gif](https://media1.tenor.com/m/1d7xExbbh80AAAAd/ornn-dance.gif)
+<div style="text-align: center;">
+  <img src="https://media1.tenor.com/m/1d7xExbbh80AAAAd/ornn-dance.gif" style="width: 300px; height: auto;">
+</div>
+
 
