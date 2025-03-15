@@ -59,7 +59,7 @@ There were two rows missing champion data and total earned gold. As these make u
 The following is a histogram of the gold difference at 10 minutes for both players with and without counterpick.
 
 <iframe
-  src="assets/EDA1.html"
+  src="assets/EDAREAL.html"
   width="800"
   height="600"
   frameborder="0"
