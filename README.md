@@ -53,19 +53,29 @@ An example of two games from the cleaned dataframe is shown below.
 | ESPORTSTMNT01_2690219 | complete           | top        | Gragas     | Blue   |     nan |     nan |     nan |     nan |     nan |         6488 |       2880 |           -894 |        -1129 |          -30 | LCKC     | Gangplank  | True          |
 | ESPORTSTMNT01_2690219 | complete           | top        | Gangplank  | Red    |     nan |     nan |     nan |     nan |     nan |        13289 |       3774 |            894 |         1129 |           30 | LCKC     | Gragas     | False         |
 
-There were two rows missing champion data (1 game) and four rows (two games) missing total earned gold. As these make up a very small fraction of the overall data, these were dropped. 
+There were two rows missing champion data and total earned gold. As these make up a very small fraction of the overall data, these were dropped. 
 
 ### Univariate analysis
 The following is a histogram of the gold difference at 10 minutes for both players with and without counterpick.
 
-FIGURE1
+<iframe
+  src="assets/EDA1.html"
+  width="800"
+  height="600"
+  frameborder="0"
+></iframe>
 
 The data is normally distributed in both cases. While there is a lot of overlap in the data, the curve for counterpick data is slightly more to the right.
 
 ### Bivariate analysis
 Does counterpicking improve overall performance, or just laning phase peformance? To answer that question, I graphed a scatter plot comparing early game performance vs late game performance, using the gold earned at ten minutes versus the gold earned total.
 
-FIGURE2
+<iframe
+  src="assets/EDA2.html"
+  width="800"
+  height="600"
+  frameborder="0"
+></iframe>
 
 While there does appear to be a slight correlation between early and total gold, it does not appear to depend on if the player was able to counterpick. As the groups appear very similar on the graph.
 
@@ -91,7 +101,12 @@ I will also test if they are missing based on the counterpick column, as that wo
 **Null hypothesis:** Regardless of counterpick status, the distribution of missing data is the same.
 **Alternative hypothesis:** Different counterpick statuses have different distributions of missing data.
 
-FIG 3
+<iframe
+  src="assets/NMAR1.html"
+  width="800"
+  height="600"
+  frameborder="0"
+></iframe>
 
 This shows the distribution of TVDs if counterpick was randomly assigned in green, and the actual TVD in yellow. As the yellow line is right in the middle of the distribution, I cannot reject my null.
 
@@ -100,7 +115,12 @@ This shows the distribution of TVDs if counterpick was randomly assigned in gree
 **Alternative hypothesis:** Different leagues have different distributions of missing data.
 
 
-FIG 4
+<iframe
+  src="assets/NMAR2.html"
+  width="800"
+  height="600"
+  frameborder="0"
+></iframe>
 
 As my actual TVD is far higher than any of the values from my permutated data, I can reject my null and say that my missing data does depend on which league it came from.
 
@@ -114,7 +134,12 @@ I want to see the effect counterpicking has on early performance. As gaining bot
 
 My resulting P-value is 0.0, which is lower than 0.05, so I can reject my null and conclude that **in my dataset, players who counterpicked earned more gold at ten minutes on average.**
 
-FIG 5
+<iframe
+  src="assets/HYP1.html"
+  width="800"
+  height="600"
+  frameborder="0"
+></iframe>
 
 My figure shows the distibution of the differences in means, with my actual difference in mean in yellow. It is very different from the distribution, and supports my conclusion.
 
@@ -130,17 +155,37 @@ My initial model was a Decision Tree Classifier using the total earned gold and 
 
 To choose the hyperparameters, I used Grid Search to try out different combinations until I came up with the best max depth and minimum sample splitting. After finding the best Classifier, I recieved a F1-score of **0.518** for training data and **0.509** for test data. This not very accurate. If I flipped a coin for each player and used that to decide, I would probably get a score of around 0.5. Therefore, my model is barely better than randomly guessing.
 ## Final Model
-To improve my model, I am switching to a Random Forest Classifier, and use one-hot encoding to change my categorical features into numerical ones. In total I am using **236 features** of which four are quantitative (total gold and gold, xp, and cs at ten minutes) and the rest are nominal. There are two columns for red or blue side, which are redundant but it doesn't matter for a Random Forest Classifier, and the rest are for what champion was picked, and what champion they are against.
+To improve my model, I am switching to a Random Forest Classifier, and use one-hot encoding to change my categorical features into numerical ones. In total I am using **236 features** of which four are quantitative (total gold and gold, xp, and cs at ten minutes) and the rest are nominal. There are two columns for red or blue side, which are redundant but it doesn't matter for a Random Forest Classifier, and the rest are for what champion was picked, and what champion they are against. This will allow my model to have more nuance around the values. Even though counterpicking leads to a higher average stats, individual matchups may be less favorable early. Another concern is that some champions may earn less gold and XP than others, because they may be more team-oriented and leave the lane to assist teammates more.
 
-Each champion collumn is one-hot encoded, meaning it is a column of 0's unless that champion was picked, in which case the value would be a 1. This allows for non-numerical data to be used for my classifier.
+Each champion collumn is one-hot encoded, meaning it is a column of 0's unless that champion was picked, in which case the value would be a 1. This allows for non-numerical data to be used for my classifier. 
 
-\[\[3109    7\]
- \[   4 3154\]\]
+Finally, I used grid search again to select the best parameters. The best parameters were as follows
+{'max_depth': 50, 'min_samples_split': 100, 'n_estimators': 100}
+
+My new classifier's test accuracy is now **0.998** which is a large improvement. My classifier is no longer randomly guessing, but is instead pretty accurate at predicting if a player counterpicked or not. Below is my confusion matrix to see how well my classifier works on the data. The actual value is represented by the columns, and the predicted value is represented by the rows.
+
+| counterpick   |   False |   True|
+|:--------------|-------------:|---------------:|
+| False         | 3109 | 7 |    
+| True          | 4  | 3154 |  
+
+While there were technically almost double the amount of false negatives in the upper right than false positives in the bottom left, both make up a very small portion of the data, so I think this is a good model.
 
 ## Fairness Analysis
+The red side gets to have the last pick of the game, and thus can always have a counterpick. I want to test that my model is not biased towards players who are the red side compared to the blue side.
+**Null Hypothesis:** My model is fair. The model's f-1 score is the same on red and blue side, with differences due to random chance.
+**Alternative Hypothesis:** My model is not fair. The model's f-1 score is higher on red side.
+**Test stat:** Difference in f1 score
+**Significance Level:** 0.05
+
+After running my permutation test, I got a p-value of **0.112** so I cannot reject my null, which suggests my model is fair to both sides. The results of my test are plotted below.
+
 <iframe
-  src="assets/EDA1.html"
+  src="assets/FAIR1.html"
   width="800"
   height="600"
   frameborder="0"
 ></iframe>
+
+As seen by my results, my observed statistic is located within the distribution of permutated training data.
+
