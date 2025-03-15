@@ -2,7 +2,7 @@
 Created as a final project for DSC80 at UCSD.
 ---
 ## Introduction
-League of Legends (LoL) is a multiplayer online battle arena released in 2009 and devloped by Riot Games. It is one of the most played video games, and also features the largest competitive esports scene. The website [Oracle's Elixer](https://oracleselixir.com/) has compiled a dataset consisting of information from 2022 esport matches. The dataset includes information about the teams, as well as in game statistics at several timepoints.
+League of Legends (LoL) is a multiplayer online battle arena released in 2009 and developed by Riot Games. It is one of the most played video games worldwide, and also features the largest competitive esports scene. The website [Oracle's Elixer](https://oracleselixir.com/) has compiled a dataset consisting of information from 2022 esport matches. The dataset includes information about the teams, as well as in game statistics at several timepoints.
 
 In LoL, players can choose from 1 of 5 roles. This analysis will focus on the top lane role and the concept of counterpicking. Before playing each game, there is a draft phase where each side takes turn to ban champions, then pick champions. Depending on the bans and picks, teams can adjust their own champion picks to better match up with the enemy team's composition. Particularly, if you know who your lane opponent is going to play, it can be advantageous to pick a champion who has a favorable matchup against them, or **"counterpick"** them.
 
@@ -42,7 +42,7 @@ The original dataset does not contain data about what a players's opponent champ
 | 'lane_opp' | The champion the opponent picked. |
 | 'counterpick' | True if the player picked their character after their opponent, False otherwise. | 
 
-A significant portion of data from the columns like the pick1-5 were missing. This was because only the team data rows had this data associated with it, and the players had data missing by design. After adding the new columns, I no longer needed the team related rows, so they were dropped.
+A significant portion of data from the columns like pick1-5 were missing. This was because only the team data rows had this data associated with it, and the players had data missing by design. After adding the new columns, I no longer needed the team related rows, so they were dropped.
 
 An example of two games from the cleaned dataframe is shown below. 
 
@@ -77,10 +77,10 @@ Does counterpicking improve overall performance, or just laning phase peformance
   frameborder="0"
 ></iframe>
 
-While there does appear to be a slight correlation between early and total gold, it does not appear to depend on if the player was able to counterpick. As the groups appear very similar on the graph.
+While there does appear to be a slight correlation between early and total gold, it does not appear to depend on if the player was able to counterpic, as the groups appear very similar on the graph.
 
 ### Interesting Aggregates
-I aggregated the total earned gold and 10 minute data depending on counterpick status, and took the mean of the data
+I aggregated the total earned gold and 10 minute data depending on counterpick status, and took the mean of the data.
 
 | counterpick   |   earnedgold |   golddiffat10 |   xpdiffat10 |   csdiffat10 |
 |:--------------|-------------:|---------------:|-------------:|-------------:|
@@ -100,6 +100,8 @@ I will also test if they are missing based on the counterpick column, as that wo
 
 **Null hypothesis:** Regardless of counterpick status, the distribution of missing data is the same.
 **Alternative hypothesis:** Different counterpick statuses have different distributions of missing data.
+**Test Statistic** TVDs.
+**Significance level** 0.05
 
 <iframe
   src="assets/NMAR1.html"
@@ -108,11 +110,13 @@ I will also test if they are missing based on the counterpick column, as that wo
   frameborder="0"
 ></iframe>
 
-This shows the distribution of TVDs if counterpick was randomly assigned in green, and the actual TVD in yellow. As the yellow line is right in the middle of the distribution, I cannot reject my null.
+The graph above shows the distribution of TVDs if counterpick was randomly assigned in green, and the actual TVD in yellow. As the yellow line is right in the middle of the distribution, I cannot reject my null.
 
 
 **Null hypothesis:** Regardless of which league the data comes from, the distribution of missing data is the same.
 **Alternative hypothesis:** Different leagues have different distributions of missing data.
+**Test Statistic** TVDs.
+**Significance level** 0.05
 
 
 <iframe
@@ -154,13 +158,14 @@ To test my classifier's accuracy, I will use the F1-score. This is because my da
 My initial model was a Decision Tree Classifier using the total earned gold and the gold earned at ten minutes. These were both quantative inputs, but because it was a Decision Tree they did not need to be scaled. There were 2 features total.
 
 To choose the hyperparameters, I used Grid Search to try out different combinations until I came up with the best max depth and minimum sample splitting. After finding the best Classifier, I recieved a F1-score of **0.518** for training data and **0.509** for test data. This not very accurate. If I flipped a coin for each player and used that to decide, I would probably get a score of around 0.5. Therefore, my model is barely better than randomly guessing.
+
 ## Final Model
 To improve my model, I am switching to a Random Forest Classifier, and use one-hot encoding to change my categorical features into numerical ones. In total I am using **236 features** of which four are quantitative (total gold and gold, xp, and cs at ten minutes) and the rest are nominal. There are two columns for red or blue side, which are redundant but it doesn't matter for a Random Forest Classifier, and the rest are for what champion was picked, and what champion they are against. This will allow my model to have more nuance around the values. Even though counterpicking leads to a higher average stats, individual matchups may be less favorable early. Another concern is that some champions may earn less gold and XP than others, because they may be more team-oriented and leave the lane to assist teammates more.
 
 Each champion collumn is one-hot encoded, meaning it is a column of 0's unless that champion was picked, in which case the value would be a 1. This allows for non-numerical data to be used for my classifier. 
 
 Finally, I used grid search again to select the best parameters. The best parameters were as follows
-{'max_depth': 50, 'min_samples_split': 100, 'n_estimators': 100}
+{'max_depth': 30, 'min_samples_split': 80, 'n_estimators': 50}
 
 My new classifier's test accuracy is now **0.998** which is a large improvement. My classifier is no longer randomly guessing, but is instead pretty accurate at predicting if a player counterpicked or not. Below is my confusion matrix to see how well my classifier works on the data. The actual value is represented by the columns, and the predicted value is represented by the rows.
 
@@ -173,8 +178,8 @@ While there were technically almost double the amount of false negatives in the 
 
 ## Fairness Analysis
 The red side gets to have the last pick of the game, and thus can always have a counterpick. I want to test that my model is not biased towards players who are the red side compared to the blue side.
-**Null Hypothesis:** My model is fair. The model's f-1 score is the same on red and blue side, with differences due to random chance.
-**Alternative Hypothesis:** My model is not fair. The model's f-1 score is higher on red side.
+**Null Hypothesis:** My model is fair. The model's F-1 score is the same on red and blue side, with differences due to random chance.
+**Alternative Hypothesis:** My model is not fair. The model's F-1 score is higher on the red side.
 **Test stat:** Difference in f1 score
 **Significance Level:** 0.05
 
@@ -188,4 +193,5 @@ After running my permutation test, I got a p-value of **0.112** so I cannot reje
 ></iframe>
 
 As seen by my results, my observed statistic is located within the distribution of permutated training data.
+![Broken Ornn Dance Gif](https://media1.tenor.com/m/1d7xExbbh80AAAAd/ornn-dance.gif)
 
